@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDC Studio — Central de Estudos & Materiais</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.5);
+        }
+        .drop-zone-active {
+            border-color: #6366f1 !important;
+            background-color: rgba(99, 102, 241, 0.08) !important;
+            transform: scale(1.01);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.22s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200">
+
+<!-- Notificação Toast -->
+<div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+<!-- Cabeçalho Superior -->
+<header class="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        <!-- Logo e Menu Mobile -->
+        <div class="flex items-center gap-3">
+            <button id="mobileSidebarBtn" class="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                <i class="ph ph-list text-xl"></i>
+            </button>
+            <div class="flex items-center gap-3 cursor-pointer" onclick="app.showDashboardOverview()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                    <i class="ph-fill ph-graduation-cap text-2xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-lg leading-tight tracking-tight">PDC Studio</h1>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">IndexedDB Local</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Plano de Desenvolvimento, Temas & Arquivos</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de Pesquisa Global -->
+        <div class="flex-1 max-w-md mx-2 order-3 sm:order-2 w-full sm:w-auto">
+            <div class="relative">
+                <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                <input
+                        type="text"
+                        id="globalSearchInput"
+                        placeholder="Buscar PDFs, imagens, notas ou temas..."
+                        class="w-full pl-10 pr-9 py-2 text-sm rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition"
+                >
+                <button id="clearSearchBtn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                    <i class="ph ph-x-circle"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Ações Direita (Backup, Tema, Novo Tema) -->
+        <div class="flex items-center gap-2 order-2 sm:order-3">
+            <!-- Armazenamento -->
+            <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60" title="Espaço ocupado pelos PDFs e Imagens no IndexedDB">
+                <i class="ph ph-hard-drives text-indigo-500 text-base"></i>
+                <span id="storageUsageBadge">0 KB</span>
+            </div>
+
+            <!-- Botão Exportar / Importar Backup -->
+            <div class="relative group">
+                <button onclick="app.openBackupModal()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5 text-xs font-medium" title="Backup de Dados">
+                    <i class="ph ph-database text-lg"></i>
+                    <span class="hidden xl:inline">Backup</span>
+                </button>
+            </div>
+
+            <!-- Alternar Tema Claro/Escuro -->
+            <button id="themeToggleBtn" onclick="app.toggleTheme()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Alternar Tema">
+                <i id="themeIcon" class="ph ph-sun text-lg"></i>
+            </button>
+
+            <!-- Botão Novo Tema -->
+            <button onclick="app.openCategoryModal()" class="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium text-xs sm:text-sm flex items-center gap-2 shadow-sm shadow-indigo-500/20 transition">
+                <i class="ph-bold ph-plus"></i>
+                <span>Novo Tema</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Layout Principal -->
+<div class="flex-1 max-w-7xl w-full mx-auto flex relative">
+
+    <!-- Overlay Mobile Sidebar -->
+    <div id="sidebarBackdrop" onclick="app.toggleMobileSidebar(false)" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden backdrop-blur-xs"></div>
+
+    <!-- Barra Lateral (Temas / Categorias) -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
+
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Navegação do PDC</span>
+            <button onclick="app.toggleMobileSidebar(false)" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i class="ph ph-x text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Botão Visão Geral de Todos os Temas -->
+        <div class="p-3 space-y-1">
+            <button id="navOverviewBtn" onclick="app.showDashboardOverview()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+                <div class="flex items-center gap-3">
+                    <i class="ph-fill ph-squares-four text-lg"></i>
+                    <span>Painel de Temas</span>
+                </div>
+                <span id="totalCategoriesCount" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800">0</span>
+            </button>
+        </div>
+
+        <div class="px-4 pt-2 pb-1 flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Meus Temas de Estudo</span>
+            <button onclick="app.openCategoryModal()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium">
+                <i class="ph-bold ph-plus"></i> Criar
+            </button>
+        </div>
+
+        <!-- Lista de Temas na Sidebar -->
+        <div id="sidebarCategoriesList" class="flex-1 overflow-y-auto p-3 space-y-1.5">
+            <!-- Preenchido via JS -->
+        </div>
+
+        <!-- Rodapé da Sidebar com Resumo -->
+        <div class="p-4 m-3 rounded-2xl bg-slate-100/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500 dark:text-slate-400 font-medium">Total de Materiais</span>
+                <span id="sidebarTotalFiles" class="font-bold text-slate-700 dark:text-slate-200">0 itens</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5 pt-1 text-center">
+                <div class="p-1.5 rounded-lg bg-white dark:bg-slate-900/70">
+                    <div id="statCountPdfs" class="text-xs font-bold text-rose-500">0</div>
+                    <div class="text-[10px] text-slate-400">PDFs</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-white dark:bg-slate-900/70">
+                    <div id="statCountImages" class="text-xs font-bold text-emerald-500">0</div>
+                    <div class="text-[10px] text-slate-400">Imagens</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-white dark:bg-slate-900/70">
+                    <div id="statCountNotes" class="text-xs font-bold text-amber-500">0</div>
+                    <div class="text-[10px] text-slate-400">Notas</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+
+        <!-- VISÃO 1: PAINEL GERAL DE TEMAS (CARDS DE CATEGORIAS) -->
+        <section id="overviewSection" class="space-y-6 animate-fade-in">
+            <!-- Banner de Boas-vindas / Instruções Rápidas -->
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-700 text-white p-6 sm:p-8 shadow-lg shadow-indigo-500/10">
+                <div class="relative z-10 max-w-2xl space-y-3">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-xs text-xs font-medium">
+                        <i class="ph-fill ph-sparkle"></i>
+                        <span>Organizador de Estudos & Arquivos Locais</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Separe seus temas e centralize PDFs, imagens e resumos</h2>
+                    <p class="text-indigo-100 text-sm sm:text-base leading-relaxed">
+                        Crie categorias para cada matéria ou módulo do seu PDC. Dentro de cada tema você pode arrastar apostilas em <strong>PDF</strong>, <strong>imagens/mapas mentais</strong> e criar <strong>notas de estudo</strong> salvas diretamente no seu navegador.
+                    </p>
+                    <div class="pt-2 flex flex-wrap gap-3">
+                        <button onclick="app.openCategoryModal()" class="px-4 py-2.5 rounded-xl bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-sm flex items-center gap-2 shadow-sm transition">
+                            <i class="ph-bold ph-folder-plus text-lg"></i>
+                            <span>Criar Novo Tema de Estudo</span>
+                        </button>
+                    </div>
+                </div>
+                <i class="ph-duotone ph-books absolute -right-6 -bottom-8 text-[160px] text-white/10 pointer-events-none select-none"></i>
+            </div>
+
+            <!-- Cabeçalho da Grade de Categorias -->
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">Temas de Estudo Cadastrados</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Clique em um tema para abrir seus PDFs, imagens e anotações ou enviar novos arquivos</p>
+                </div>
+            </div>
+
+            <!-- Grade de Cards de Categorias -->
+            <div id="categoriesGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                <!-- Preenchido via JS -->
+            </div>
+        </section>
+
+        <!-- VISÃO 2: DETALHE DE UM TEMA SELECIONADO (UPLOAD + ARQUIVOS) -->
+        <section id="categoryDetailSection" class="hidden space-y-6 animate-fade-in">
+
+            <!-- Barra de Topo do Tema -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-start gap-4">
+                    <button onclick="app.showDashboardOverview()" class="mt-0.5 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Voltar para todos os temas">
+                        <i class="ph-bold ph-arrow-left text-lg"></i>
+                    </button>
+                    <div id="activeCatBadge" class="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-2xl shrink-0 shadow-md">
+                        <i class="ph-fill ph-folder"></i>
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h2 id="activeCatTitle" class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Nome do Tema</h2>
+                            <span id="activeCatMetaBadge" class="text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">0 itens</span>
+                        </div>
+                        <p id="activeCatDesc" class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Descrição da categoria de estudos</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 self-end md:self-center">
+                    <button onclick="app.openNoteModal()" class="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs sm:text-sm font-medium flex items-center gap-2 transition">
+                        <i class="ph-bold ph-note-pencil text-base"></i>
+                        <span>Nova Nota / Resumo</span>
+                    </button>
+                    <button onclick="document.getElementById('fileUploadInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium flex items-center gap-2 shadow-sm shadow-indigo-500/20 transition">
+                        <i class="ph-bold ph-upload-simple text-base"></i>
+                        <span>Subir PDF / Imagem</span>
+                    </button>
+                    <button onclick="app.editCurrentCategory()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Editar Tema">
+                        <i class="ph ph-pencil-simple text-lg"></i>
+                    </button>
+                    <button onclick="app.confirmDeleteCurrentCategory()" class="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition" title="Excluir Tema">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área de Drag and Drop para Upload de PDFs, Imagens e Arquivos -->
+            <div
+                    id="dropZone"
+                    onclick="document.getElementById('fileUploadInput').click()"
+                    class="cursor-pointer group rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 bg-white/60 dark:bg-slate-900/50 p-6 text-center transition-all duration-200"
+            >
+                <input type="file" id="fileUploadInput" multiple accept="image/*,.pdf,.txt,.md,.doc,.docx,.ppt,.pptx,.xls,.xlsx" class="hidden">
+                <div class="max-w-md mx-auto flex flex-col items-center space-y-2">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="ph-duotone ph-cloud-arrow-up text-3xl"></i>
+                    </div>
+                    <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        Arraste e solte seus arquivos aqui ou <span class="text-indigo-600 dark:text-indigo-400 underline">clique para selecionar</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Suporta <strong>PDFs</strong> (apostilas, livros, slides), <strong>Imagens</strong> (PNG, JPG, WEBP, GIF) e documentos. Tudo fica salvo localmente neste tema.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Barra de Filtros e Controles da Categoria -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <!-- Abas de Filtro por Tipo -->
+                <div class="flex items-center gap-1.5 bg-slate-200/70 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <button onclick="app.setMediaFilter('all')" data-filter="all" class="media-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                        Todos
+                    </button>
+                    <button onclick="app.setMediaFilter('pdf')" data-filter="pdf" class="media-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                        <i class="ph-fill ph-file-pdf text-rose-500"></i> PDFs
+                    </button>
+                    <button onclick="app.setMediaFilter('image')" data-filter="image" class="media-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                        <i class="ph-fill ph-image text-emerald-500"></i> Imagens
+                    </button>
+                    <button onclick="app.setMediaFilter('note')" data-filter="note" class="media-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                        <i class="ph-fill ph-note text-amber-500"></i> Notas & Links
+                    </button>
+                </div>
+
+                <!-- Ordenação -->
+                <div class="flex items-center gap-2">
+                    <label for="sortSelect" class="text-xs text-slate-500 dark:text-slate-400">Ordenar:</label>
+                    <select id="sortSelect" onchange="app.renderActiveCategoryItems()" class="text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 focus:outline-none focus:border-indigo-500">
+                        <option value="newest">Mais recentes primeiro</option>
+                        <option value="oldest">Mais antigos primeiro</option>
+                        <option value="name">Nome (A-Z)</option>
+                        <option value="size">Maior tamanho</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Grade de Materiais do Tema (PDFs, Imagens, Notas) -->
+            <div id="materialsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Preenchido via JS -->
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- MODAL 1: CRIAR / EDITAR CATEGORIA (TEMA DE ESTUDO) -->
+<div id="categoryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+            <h3 id="categoryModalTitle" class="text-lg font-bold">Novo Tema de Estudo</h3>
+            <button onclick="app.closeCategoryModal()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i class="ph ph-x text-lg"></i>
+            </button>
+        </div>
+
+        <form id="categoryForm" onsubmit="app.saveCategory(event)" class="space-y-4 mt-4">
+            <input type="hidden" id="catIdInput">
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Nome do Tema / Disciplina *</label>
+                <input
+                        type="text"
+                        id="catNameInput"
+                        required
+                        placeholder="Ex: Arquitetura de Software, Inglês, Cálculo I..."
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 focus:outline-none text-sm"
+                >
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Descrição / Objetivo de Estudo</label>
+                <textarea
+                        id="catDescInput"
+                        rows="2"
+                        placeholder="Ex: Apostilas em PDF, resumos e diagramas para certificação..."
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 focus:outline-none text-sm resize-none"
+                ></textarea>
+            </div>
+
+            <!-- Seleção de Cor -->
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Cor de Identificação</label>
+                <div id="colorPickerContainer" class="flex flex-wrap gap-2.5">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+            <!-- Seleção de Ícone -->
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Ícone do Tema</label>
+                <div id="iconPickerContainer" class="grid grid-cols-6 gap-2">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" onclick="app.closeCategoryModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-medium transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+                    Salvar Tema
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: CRIAR / EDITAR NOTA DE ESTUDO OU LINK -->
+<div id="noteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl animate-fade-in">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+            <h3 id="noteModalTitle" class="text-lg font-bold flex items-center gap-2">
+                <i class="ph-fill ph-note-pencil text-amber-500"></i>
+                <span>Adicionar Nota / Resumo de Estudo</span>
+            </h3>
+            <button onclick="app.closeNoteModal()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i class="ph ph-x text-lg"></i>
+            </button>
+        </div>
+
+        <form id="noteForm" onsubmit="app.saveNote(event)" class="space-y-4 mt-4">
+            <input type="hidden" id="noteIdInput">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Título da Anotação *</label>
+                <input
+                        type="text"
+                        id="noteTitleInput"
+                        required
+                        placeholder="Ex: Resumo do Capítulo 1, Links de Videoaulas..."
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 focus:outline-none text-sm"
+                >
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Link de Referência (Opcional)</label>
+                <input
+                        type="url"
+                        id="noteUrlInput"
+                        placeholder="https://..."
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 focus:outline-none text-sm"
+                >
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Conteúdo / Anotações *</label>
+                <textarea
+                        id="noteContentInput"
+                        required
+                        rows="6"
+                        placeholder="Escreva aqui seus pontos importantes, fórmulas, lembretes ou fichamento..."
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 focus:outline-none text-sm"
+                ></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" onclick="app.closeNoteModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-medium transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-bold shadow-sm transition">
+                    Salvar Anotação
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 3: VISUALIZADOR INTEGRADO DE ARQUIVOS (PDF, IMAGEM, NOTA) -->
+<div id="previewModal" class="fixed inset-0 z-50 hidden flex-col bg-black/85 backdrop-blur-sm">
+    <!-- Barra Superior do Preview -->
+    <div class="flex items-center justify-between px-4 sm:px-6 py-3 bg-slate-900/90 border-b border-slate-800 text-white">
+        <div class="flex items-center gap-3 min-w-0">
+            <div id="previewIconBadge" class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                <i class="ph-fill ph-file text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h4 id="previewTitle" class="font-semibold text-sm sm:text-base truncate">Arquivo</h4>
+                <p id="previewSubtitle" class="text-xs text-slate-400">Detalhes do material</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Controles de Zoom para Imagem -->
+            <div id="imageZoomControls" class="hidden items-center gap-1 bg-slate-800 rounded-xl p-1 mr-2">
+                <button onclick="app.adjustImageZoom(-0.25)" class="p-1.5 hover:bg-slate-700 rounded-lg text-slate-200" title="Diminuir Zoom">
+                    <i class="ph ph-magnifying-glass-minus"></i>
+                </button>
+                <span id="zoomLevelText" class="text-xs px-2 font-mono">100%</span>
+                <button onclick="app.adjustImageZoom(0.25)" class="p-1.5 hover:bg-slate-700 rounded-lg text-slate-200" title="Aumentar Zoom">
+                    <i class="ph ph-magnifying-glass-plus"></i>
+                </button>
+                <button onclick="app.resetImageZoom()" class="p-1.5 hover:bg-slate-700 rounded-lg text-slate-200 text-xs px-2" title="Resetar">
+                    Reset
+                </button>
+            </div>
+
+            <!-- Botão Abrir em Nova Aba (Útil para PDFs no Mobile) -->
+            <a id="previewOpenNewTabBtn" href="#" target="_blank" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium flex items-center gap-1.5 transition">
+                <i class="ph ph-arrow-square-out text-base"></i>
+                <span class="hidden sm:inline">Nova Aba</span>
+            </a>
+
+            <!-- Botão Baixar -->
+            <a id="previewDownloadBtn" href="#" download class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold flex items-center gap-1.5 transition">
+                <i class="ph-bold ph-download-simple text-base"></i>
+                <span class="hidden sm:inline">Baixar</span>
+            </a>
+
+            <!-- Fechar -->
+            <button onclick="app.closePreviewModal()" class="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-white transition ml-1" title="Fechar (ESC)">
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Corpo do Visualizador -->
+    <div id="previewBody" class="flex-1 overflow-auto flex items-center justify-center p-2 sm:p-6 relative">
+        <!-- Conteúdo injetado dinamicamente (iframe PDF, img ou card de nota) -->
+    </div>
+</div>
+
+<!-- MODAL 4: CONFIRMAÇÃO DE EXCLUSÃO CUSTOMIZADO (Sem alert/confirm nativo) -->
+<div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-fade-in text-center space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto text-2xl">
+            <i class="ph-fill ph-warning-circle"></i>
+        </div>
+        <div class="space-y-1">
+            <h3 id="confirmModalTitle" class="text-base font-bold">Confirmar Exclusão</h3>
+            <p id="confirmModalDesc" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Tem certeza que deseja remover este item?</p>
+        </div>
+        <div class="flex items-center justify-center gap-2 pt-2">
+            <button onclick="app.closeConfirmModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold transition">
+                Cancelar
+            </button>
+            <button id="confirmModalActionBtn" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm transition">
+                Sim, Excluir
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 5: GERENCIADOR DE BACKUP & ARMAZENAMENTO -->
+<div id="backupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+                <i class="ph-fill ph-database text-indigo-500 text-xl"></i>
+                <h3 class="text-base font-bold">Backup & Armazenamento Local</h3>
+            </div>
+            <button onclick="document.getElementById('backupModal').classList.replace('flex', 'hidden')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i class="ph ph-x text-lg"></i>
+            </button>
+        </div>
+
+        <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Seus PDFs, imagens e temas ficam salvos no banco de dados <strong>IndexedDB</strong> deste navegador. Você pode exportar um arquivo de backup para salvar no computador ou transferir para outro dispositivo.
+        </p>
+
+        <div class="space-y-3 pt-2">
+            <button onclick="app.exportDatabaseBackup()" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition">
+                <i class="ph-bold ph-download-simple text-lg"></i>
+                <span>Exportar Backup Completo (.JSON)</span>
+            </button>
+
+            <button onclick="document.getElementById('importBackupInput').click()" class="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition">
+                <i class="ph-bold ph-upload-simple text-lg"></i>
+                <span>Importar Arquivo de Backup</span>
+            </button>
+            <input type="file" id="importBackupInput" accept=".json" onchange="app.importDatabaseBackup(event)" class="hidden">
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * PDC STUDIO - APLICAÇÃO COMPLETA COM INDEXEDDB PARA ARQUIVOS (PDF, IMAGENS, NOTAS)
+     */
+    const app = {
+        dbName: 'PDCStudioDB_v1',
+        dbVersion: 1,
+        db: null,
+
+        // Estado da Aplicação
+        categories: [],
+        materials: [], // Metadados + Blobs carregados do IndexedDB
+        activeCategoryId: null, // null = visão geral (todos os cards de temas)
+        activeMediaFilter: 'all', // 'all' | 'pdf' | 'image' | 'note'
+        searchQuery: '',
+        currentZoom: 1,
+        activeBlobUrl: null,
+
+        // Paleta de Cores e Ícones para Temas
+        colors: [
+            { name: 'Indigo', value: '#6366f1', bg: 'bg-indigo-500' },
+            { name: 'Esmeralda', value: '#10b981', bg: 'bg-emerald-500' },
+            { name: 'Rosa', value: '#f43f5e', bg: 'bg-rose-500' },
+            { name: 'Âmbar', value: '#f59e0b', bg: 'bg-amber-500' },
+            { name: 'Ciano', value: '#06b6d4', bg: 'bg-cyan-500' },
+            { name: 'Roxo', value: '#a855f7', bg: 'bg-purple-500' },
+            { name: 'Azul', value: '#3b82f6', bg: 'bg-blue-500' },
+            { name: 'Laranja', value: '#f97316', bg: 'bg-orange-500' }
+        ],
+        icons: [
+            'ph-code', 'ph-book-open-text', 'ph-calculator', 'ph-globe-hemisphere-west',
+            'ph-atom', 'ph-chart-line-up', 'ph-First-aid-kit', 'ph-gavel',
+            'ph-paint-brush', 'ph-cpu', 'ph-briefcase', 'ph-rocket-launch'
+        ],
+        selectedColor: '#6366f1',
+        selectedIcon: 'ph-code',
+
+        /**
+         * Inicialização Geral
+         */
+        async init() {
+            this.initTheme();
+            this.renderPickers();
+            this.bindEvents();
+
+            try {
+                await this.initDB();
+                await this.loadAllData();
+
+                // Se não houver nenhuma categoria ainda, cria temas iniciais de exemplo com materiais demonstrativos
+                if (this.categories.length === 0) {
+                    await this.seedInitialData();
+                    await this.loadAllData();
+                }
+
+                this.renderAll();
+            } catch (err) {
+                console.error('Erro ao inicializar banco IndexedDB:', err);
+                this.showToast('Erro ao acessar armazenamento local do navegador.', 'error');
+            }
+        },
+
+        /**
+         * Configura e abre o IndexedDB para suportar arquivos grandes (PDFs, Imagens, etc.)
+         */
+        initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(this.dbName, this.dbVersion);
+
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('categories')) {
+                        db.createObjectStore('categories', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('materials')) {
+                        const store = db.createObjectStore('materials', { keyPath: 'id' });
+                        store.createIndex('categoryId', 'categoryId', { unique: false });
+                    }
+                };
+
+                request.onsuccess = (e) => {
+                    this.db = e.target.result;
+                    resolve();
+                };
+
+                request.onerror = (e) => reject(e.target.error);
+            });
+        },
+
+        /**
+         * Operações genéricas no IndexedDB
+         */
+        dbGetAll(storeName) {
+            return new Promise((resolve, reject) => {
+                const tx = this.db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            });
+        },
+
+        dbPut(storeName, item) {
+            return new Promise((resolve, reject) => {
+                const tx = this.db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.put(item);
+                req.onsuccess = () => resolve(item);
+                req.onerror = () => reject(req.error);
+            });
+        },
+
+        dbDelete(storeName, id) {
+            return new Promise((resolve, reject) => {
+                const tx = this.db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.delete(id);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        },
+
+        /**
+         * Carrega todas as categorias e materiais do IndexedDB para a memória
+         */
+        async loadAllData() {
+            this.categories = await this.dbGetAll('categories');
+            this.materials = await this.dbGetAll('materials');
+            this.categories.sort((a, b) => b.createdAt - a.createdAt);
+            this.updateStorageStats();
+        },
+
+        /**
+         * Cria categorias e um PDF + Imagem + Nota de demonstração na primeira abertura
+         */
+        async seedInitialData() {
+            const cat1Id = 'cat_demo_1';
+            const cat2Id = 'cat_demo_2';
+
+            const demoCategories = [
+                {
+                    id: cat1Id,
+                    name: 'Desenvolvimento Web & Arquitetura',
+                    description: 'Apostilas em PDF, diagramas de sistemas e resumos de Front-end e Back-end.',
+                    color: '#6366f1',
+                    icon: 'ph-code',
+                    createdAt: Date.now()
+                },
+                {
+                    id: cat2Id,
+                    name: 'Gestão de Projetos & Inglês Técnico',
+                    description: 'Materiais de estudo, vocabulário técnico, mapas mentais e cronogramas.',
+                    color: '#10b981',
+                    icon: 'ph-globe-hemisphere-west',
+                    createdAt: Date.now() - 10000
+                }
+            ];
+
+            for (const c of demoCategories) {
+                await this.dbPut('categories', c);
+            }
+
+            // Cria um mini-PDF real válido em binário para que o usuário já possa testar o leitor de PDF imediatamente
+            const samplePdfString = `%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >> endobj
+4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+5 0 obj << /Length 165 >> stream
+BT
+/F1 20 Tf
+72 700 Td
+(PDC Studio - Guia de Estudos em PDF) Tj
+/F1 12 Tf
+0 -35 Td
+(Este e um arquivo PDF de exemplo armazenado localmente no IndexedDB.) Tj
+0 -22 Td
+(Voce pode subir seus proprios livros, apostilas em PDF e imagens!) Tj
+ET
+endstream endobj
+xref
+0 6
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000229 00000 n
+0000000297 00000 n
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+514
+%%EOF`;
+            const pdfBlob = new Blob([samplePdfString], { type: 'application/pdf' });
+
+            // Cria uma imagem SVG convertida em Blob para exemplo de Mapa Mental
+            const svgMap = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+                <rect width="800" height="450" fill="#0f172a"/>
+                <circle cx="400" cy="225" r="75" fill="#4f46e5"/>
+                <text x="400" y="220" font-family="sans-serif" font-size="16" font-weight="bold" fill="#ffffff" text-anchor="middle">PDC ESTUDOS</text>
+                <text x="400" y="242" font-family="sans-serif" font-size="12" fill="#c7d2fe" text-anchor="middle">Mapa Mental</text>
+                <line x1="325" y1="225" x2="190" y2="120" stroke="#6366f1" stroke-width="4"/>
+                <rect x="70" y="85" width="140" height="60" rx="12" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+                <text x="140" y="120" font-family="sans-serif" font-size="14" fill="#f8fafc" text-anchor="middle">1. Apostilas PDF</text>
+                <line x1="475" y1="225" x2="610" y2="120" stroke="#10b981" stroke-width="4"/>
+                <rect x="590" y="85" width="140" height="60" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+                <text x="660" y="120" font-family="sans-serif" font-size="14" fill="#f8fafc" text-anchor="middle">2. Diagramas</text>
+                <line x1="400" y1="300" x2="400" y2="365" stroke="#f59e0b" stroke-width="4"/>
+                <rect x="310" y="360" width="180" height="55" rx="12" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+                <text x="400" y="393" font-family="sans-serif" font-size="14" fill="#f8fafc" text-anchor="middle">3. Resumos & Notas</text>
+            </svg>`;
+            const imgBlob = new Blob([svgMap], { type: 'image/svg+xml' });
+
+            const demoMaterials = [
+                {
+                    id: 'mat_demo_pdf',
+                    categoryId: cat1Id,
+                    name: 'Guia_Introducao_Arquitetura.pdf',
+                    type: 'pdf',
+                    mimeType: 'application/pdf',
+                    size: pdfBlob.size,
+                    blob: pdfBlob,
+                    createdAt: Date.now()
+                },
+                {
+                    id: 'mat_demo_img',
+                    categoryId: cat1Id,
+                    name: 'Mapa_Mental_Estudos.svg',
+                    type: 'image',
+                    mimeType: 'image/svg+xml',
+                    size: imgBlob.size,
+                    blob: imgBlob,
+                    createdAt: Date.now() - 3600000
+                },
+                {
+                    id: 'mat_demo_note',
+                    categoryId: cat1Id,
+                    name: 'Checklist de Estudos da Semana',
+                    type: 'note',
+                    content: '1. Revisar conceitos de Clean Architecture no PDF.\n2. Subir prints dos diagramas de banco de dados.\n3. Praticar exercícios de algoritmos 30 min por dia.',
+                    url: 'https://developer.mozilla.org/pt-BR/',
+                    size: 185,
+                    createdAt: Date.now() - 7200000
+                }
+            ];
+
+            for (const m of demoMaterials) {
+                await this.dbPut('materials', m);
+            }
+        },
+
+        /**
+         * Eventos de Interface (Drag & Drop, Busca, Atalhos)
+         */
+        bindEvents() {
+            // Busca global instantânea
+            const searchInput = document.getElementById('globalSearchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+
+            searchInput.addEventListener('input', (e) => {
+                this.searchQuery = e.target.value.trim().toLowerCase();
+                clearBtn.classList.toggle('hidden', !this.searchQuery);
+                this.renderAll();
+            });
+
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                this.searchQuery = '';
+                clearBtn.classList.add('hidden');
+                this.renderAll();
+            });
+
+            // Botão mobile sidebar
+            document.getElementById('mobileSidebarBtn').addEventListener('click', () => {
+                this.toggleMobileSidebar(true);
+            });
+
+            // Input de Upload de arquivos
+            const fileInput = document.getElementById('fileUploadInput');
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    this.handleFilesUpload(Array.from(e.target.files));
+                    fileInput.value = '';
+                }
+            });
+
+            // Drag & Drop na área do tema
+            const dropZone = document.getElementById('dropZone');
+            ['dragenter', 'dragover'].forEach(evt => {
+                dropZone.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('drop-zone-active');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(evt => {
+                dropZone.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('drop-zone-active');
+                });
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const files = Array.from(e.dataTransfer.files || []);
+                if (files.length > 0) {
+                    this.handleFilesUpload(files);
+                }
+            });
+
+            // Fechar modais com tecla ESC
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.closePreviewModal();
+                    this.closeCategoryModal();
+                    this.closeNoteModal();
+                    this.closeConfirmModal();
+                }
+            });
+        },
+
+        /**
+         * Processa o upload de múltiplos arquivos (PDFs, Imagens e outros documentos)
+         */
+        async handleFilesUpload(files) {
+            if (!this.activeCategoryId) {
+                this.showToast('Selecione ou abra um tema antes de enviar arquivos.', 'error');
+                return;
+            }
+
+            let uploadedCount = 0;
+            for (const file of files) {
+                const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                const isImage = file.type.startsWith('image/');
+                const mediaType = isPdf ? 'pdf' : (isImage ? 'image' : 'other');
+
+                const newMaterial = {
+                    id: 'mat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                    categoryId: this.activeCategoryId,
+                    name: file.name,
+                    type: mediaType,
+                    mimeType: file.type || (isPdf ? 'application/pdf' : 'application/octet-stream'),
+                    size: file.size,
+                    blob: file, // File herda de Blob e é salvo diretamente no IndexedDB
+                    createdAt: Date.now()
+                };
+
+                await this.dbPut('materials', newMaterial);
+                this.materials.push(newMaterial);
+                uploadedCount++;
+            }
+
+            this.updateStorageStats();
+            this.renderAll();
+            this.showToast(`${uploadedCount} arquivo(s) adicionado(s) com sucesso ao tema!`, 'success');
+        },
+
+        /**
+         * Renderiza todos os componentes da tela conforme o estado atual
+         */
+        renderAll() {
+            this.renderSidebar();
+            if (this.activeCategoryId === null) {
+                document.getElementById('overviewSection').classList.remove('hidden');
+                document.getElementById('categoryDetailSection').classList.add('hidden');
+                this.renderCategoriesOverview();
+            } else {
+                document.getElementById('overviewSection').classList.add('hidden');
+                document.getElementById('categoryDetailSection').classList.remove('hidden');
+                this.renderActiveCategoryHeader();
+                this.renderActiveCategoryItems();
+            }
+        },
+
+        /**
+         * Renderiza a Barra Lateral Esquerda e contadores
+         */
+        renderSidebar() {
+            const listEl = document.getElementById('sidebarCategoriesList');
+            document.getElementById('totalCategoriesCount').textContent = this.categories.length;
+
+            // Estilo do botão Visão Geral
+            const navOverviewBtn = document.getElementById('navOverviewBtn');
+            if (this.activeCategoryId === null) {
+                navOverviewBtn.className = 'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white shadow-sm shadow-indigo-500/20 transition';
+            } else {
+                navOverviewBtn.className = 'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition';
+            }
+
+            if (this.categories.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-8 px-3 text-xs text-slate-400">
+                        Nenhum tema criado ainda. Clique em "+ Criar" acima.
+                    </div>
+                `;
+            } else {
+                listEl.innerHTML = this.categories.map(cat => {
+                    const count = this.materials.filter(m => m.categoryId === cat.id).length;
+                    const isActive = this.activeCategoryId === cat.id;
+                    return `
+                        <button
+                            onclick="app.selectCategory('${cat.id}')"
+                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition group ${
+                                isActive
+                                ? 'bg-slate-100 dark:bg-slate-800 font-semibold text-indigo-600 dark:text-indigo-400'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                            }"
+                        >
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs" style="background-color: ${cat.color}">
+                                    <i class="ph-fill ${cat.icon} text-sm"></i>
+                                </span>
+                                <span class="truncate">${this.escapeHTML(cat.name)}</span>
+                            </div>
+                            <span class="text-xs px-2 py-0.5 rounded-full ${
+                                isActive
+                                ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 font-semibold'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                            }">${count}</span>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            // Atualiza estatísticas globais na base da sidebar
+            const pdfCount = this.materials.filter(m => m.type === 'pdf').length;
+            const imgCount = this.materials.filter(m => m.type === 'image').length;
+            const noteCount = this.materials.filter(m => m.type === 'note').length;
+
+            document.getElementById('sidebarTotalFiles').textContent = `${this.materials.length} iten(s)`;
+            document.getElementById('statCountPdfs').textContent = pdfCount;
+            document.getElementById('statCountImages').textContent = imgCount;
+            document.getElementById('statCountNotes').textContent = noteCount;
+        },
+
+        /**
+         * Renderiza os Cards dos Temas de Estudo na Visão Inicial
+         */
+        renderCategoriesOverview() {
+            const grid = document.getElementById('categoriesGrid');
+            let filteredCats = this.categories;
+
+            if (this.searchQuery) {
+                filteredCats = this.categories.filter(cat => {
+                    const matchCat = cat.name.toLowerCase().includes(this.searchQuery) ||
+                                     (cat.description || '').toLowerCase().includes(this.searchQuery);
+                    const hasMatchingMaterial = this.materials.some(m =>
+                        m.categoryId === cat.id && m.name.toLowerCase().includes(this.searchQuery)
+                    );
+                    return matchCat || hasMatchingMaterial;
+                });
+            }
+
+            if (filteredCats.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center space-y-3">
+                        <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto text-3xl">
+                            <i class="ph-duotone ph-folders"></i>
+                        </div>
+                        <h4 class="font-bold text-base">Nenhum tema encontrado</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                            Crie um novo tema de estudos para começar a separar seus PDFs, imagens e resumos por disciplina.
+                        </p>
+                        <button onclick="app.openCategoryModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition">
+                            + Criar Primeiro Tema
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filteredCats.map(cat => {
+                const catMaterials = this.materials.filter(m => m.categoryId === cat.id);
+                const pdfs = catMaterials.filter(m => m.type === 'pdf').length;
+                const imgs = catMaterials.filter(m => m.type === 'image').length;
+                const notes = catMaterials.filter(m => m.type === 'note').length;
+
+                return `
+                    <div
+                        onclick="app.selectCategory('${cat.id}')"
+                        class="group cursor-pointer bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800 hover:border-indigo-500/60 dark:hover:border-indigo-500/60 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
+                    >
+                        <div class="space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md group-hover:scale-105 transition-transform" style="background-color: ${cat.color}">
+                                    <i class="ph-fill ${cat.icon}"></i>
+                                </div>
+                                <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+                                    <button onclick="app.openCategoryModal('${cat.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Editar Tema">
+                                        <i class="ph ph-pencil-simple"></i>
+                                    </button>
+                                    <button onclick="app.confirmDeleteCategory('${cat.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition" title="Excluir Tema">
+                                        <i class="ph ph-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="font-bold text-base text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition line-clamp-1">
+                                    ${this.escapeHTML(cat.name)}
+                                </h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 min-h-[2rem]">
+                                    ${this.escapeHTML(cat.description || 'Sem descrição cadastrada.')}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                                <span class="flex items-center gap-1" title="Arquivos PDF">
+                                    <i class="ph-fill ph-file-pdf text-rose-500 text-sm"></i> ${pdfs}
+                                </span>
+                                <span class="flex items-center gap-1" title="Imagens">
+                                    <i class="ph-fill ph-image text-emerald-500 text-sm"></i> ${imgs}
+                                </span>
+                                <span class="flex items-center gap-1" title="Notas de Estudo">
+                                    <i class="ph-fill ph-note text-amber-500 text-sm"></i> ${notes}
+                                </span>
+                            </div>
+
+                            <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                                Abrir tema <i class="ph-bold ph-caret-right"></i>
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        },
+
+        /**
+         * Seleciona um Tema e abre a tela dedicada a ele
+         */
+        selectCategory(catId) {
+            this.activeCategoryId = catId;
+            this.activeMediaFilter = 'all';
+            this.toggleMobileSidebar(false);
+            this.renderAll();
+        },
+
+        showDashboardOverview() {
+            this.activeCategoryId = null;
+            this.toggleMobileSidebar(false);
+            this.renderAll();
+        },
+
+        /**
+         * Cabeçalho do Tema Selecionado
+         */
+        renderActiveCategoryHeader() {
+            const cat = this.categories.find(c => c.id === this.activeCategoryId);
+            if (!cat) {
+                this.showDashboardOverview();
+                return;
+            }
+
+            const count = this.materials.filter(m => m.categoryId === cat.id).length;
+            const badge = document.getElementById('activeCatBadge');
+            badge.style.backgroundColor = cat.color;
+            badge.innerHTML = `<i class="ph-fill ${cat.icon}"></i>`;
+
+            document.getElementById('activeCatTitle').textContent = cat.name;
+            document.getElementById('activeCatDesc').textContent = cat.description || 'Arraste PDFs, imagens ou crie notas de estudo para este tema.';
+            document.getElementById('activeCatMetaBadge').textContent = `${count} material(is)`;
+
+            // Atualiza botões de filtro
+            document.querySelectorAll('.media-filter-btn').forEach(btn => {
+                const isCurrent = btn.getAttribute('data-filter') === this.activeMediaFilter;
+                if (isCurrent) {
+                    btn.className = 'media-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs transition flex items-center gap-1.5';
+                } else {
+                    btn.className = 'media-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1.5';
+                }
+            });
+        },
+
+        setMediaFilter(filter) {
+            this.activeMediaFilter = filter;
+            this.renderActiveCategoryHeader();
+            this.renderActiveCategoryItems();
+        },
+
+        /**
+         * Renderiza os PDFs, Imagens e Notas pertencentes à Categoria ativa
+         */
+        renderActiveCategoryItems() {
+            const grid = document.getElementById('materialsGrid');
+            const sortBy = document.getElementById('sortSelect').value;
+
+            let items = this.materials.filter(m => m.categoryId === this.activeCategoryId);
+
+            // Filtro por tipo de mídia
+            if (this.activeMediaFilter !== 'all') {
+                items = items.filter(m => m.type === this.activeMediaFilter);
+            }
+
+            // Filtro de busca
+            if (this.searchQuery) {
+                items = items.filter(m =>
+                    m.name.toLowerCase().includes(this.searchQuery) ||
+                    (m.content && m.content.toLowerCase().includes(this.searchQuery))
+                );
+            }
+
+            // Ordenação
+            items.sort((a, b) => {
+                if (sortBy === 'newest') return b.createdAt - a.createdAt;
+                if (sortBy === 'oldest') return a.createdAt - b.createdAt;
+                if (sortBy === 'name') return a.name.localeCompare(b.name);
+                if (sortBy === 'size') return (b.size || 0) - (a.size || 0);
+                return 0;
+            });
+
+            if (items.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+                            <i class="ph ph-folder-open"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <h4 class="font-bold text-sm">Nenhum material encontrado neste filtro</h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Envie arquivos <strong>PDF</strong>, <strong>Imagens</strong> ou crie uma <strong>Nota de estudo</strong> usando os botões acima.
+                            </p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = items.map(item => this.createMaterialCardHTML(item)).join('');
+
+            // Carrega miniaturas (thumbnails) reais das imagens salvas no IndexedDB
+            items.filter(i => i.type === 'image' && i.blob).forEach(imgItem => {
+                const imgEl = document.getElementById(`thumb_${imgItem.id}`);
+                if (imgEl) {
+                    const url = URL.createObjectURL(imgItem.blob);
+                    imgEl.src = url;
+                    imgEl.onload = () => URL.revokeObjectURL(url);
+                }
+            });
+        },
+
+        /**
+         * Gera o HTML individual de cada Card de Material (PDF, Imagem, Nota ou Arquivo)
+         */
+        createMaterialCardHTML(item) {
+            const dateStr = new Date(item.createdAt).toLocaleDateString('pt-BR', {
+                day: '2-digit', month: 'short', year: 'numeric'
+            });
+            const sizeStr = this.formatBytes(item.size || 0);
+
+            // Card de IMAGEM
+            if (item.type === 'image') {
+                return `
+                    <div class="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-md hover:border-indigo-500/50 transition flex flex-col justify-between">
+                        <div onclick="app.openPreview('${item.id}')" class="cursor-pointer relative h-44 bg-slate-100 dark:bg-slate-950 overflow-hidden flex items-center justify-center">
+                            <img id="thumb_${item.id}" alt="${this.escapeHTML(item.name)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
+                                <span class="opacity-0 group-hover:opacity-100 px-3 py-1.5 rounded-xl bg-black/75 text-white text-xs font-medium flex items-center gap-1.5 backdrop-blur-xs transition">
+                                    <i class="ph-bold ph-arrows-out-simple"></i> Ampliar Imagem
+                                </span>
+                            </div>
+                            <span class="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-emerald-500/90 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs flex items-center gap-1">
+                                <i class="ph-fill ph-image"></i> Imagem
+                            </span>
+                        </div>
+                        <div class="p-4 flex items-center justify-between gap-2">
+                            <div class="min-w-0" onclick="app.openPreview('${item.id}')" class="cursor-pointer">
+                                <h5 class="font-semibold text-sm truncate text-slate-800 dark:text-slate-100" title="${this.escapeHTML(item.name)}">${this.escapeHTML(item.name)}</h5>
+                                <p class="text-[11px] text-slate-400 mt-0.5">${sizeStr} • ${dateStr}</p>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="app.downloadMaterial('${item.id}')" class="p-2 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Baixar">
+                                    <i class="ph ph-download-simple text-base"></i>
+                                </button>
+                                <button onclick="app.confirmDeleteMaterial('${item.id}')" class="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition" title="Excluir">
+                                    <i class="ph ph-trash text-base"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Card de PDF
+            if (item.type === 'pdf') {
+                return `
+                    <div class="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-md hover:border-rose-500/50 transition flex flex-col justify-between">
+                        <div onclick="app.openPreview('${item.id}')" class="cursor-pointer relative h-44 bg-gradient-to-br from-rose-500/10 via-slate-100 to-slate-200 dark:from-rose-500/15 dark:via-slate-900 dark:to-slate-950 flex flex-col items-center justify-center p-4 text-center">
+                            <div class="w-16 h-16 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/25 group-hover:scale-110 transition-transform">
+                                <i class="ph-fill ph-file-pdf text-4xl"></i>
+                            </div>
+                            <span class="mt-3 text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                                <i class="ph-bold ph-book-open"></i> Clique para ler o PDF
+                            </span>
+                            <span class="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                                PDF
+                            </span>
+                        </div>
+                        <div class="p-4 flex items-center justify-between gap-2">
+                            <div class="min-w-0 cursor-pointer" onclick="app.openPreview('${item.id}')">
+                                <h5 class="font-semibold text-sm truncate text-slate-800 dark:text-slate-100" title="${this.escapeHTML(item.name)}">${this.escapeHTML(item.name)}</h5>
+                                <p class="text-[11px] text-slate-400 mt-0.5">${sizeStr} • ${dateStr}</p>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="app.downloadMaterial('${item.id}')" class="p-2 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Baixar PDF">
+                                    <i class="ph ph-download-simple text-base"></i>
+                                </button>
+                                <button onclick="app.confirmDeleteMaterial('${item.id}')" class="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition" title="Excluir">
+                                    <i class="ph ph-trash text-base"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Card de NOTA / RESUMO
+            if (item.type === 'note') {
+                return `
+                    <div class="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-md hover:border-amber-500/50 transition flex flex-col justify-between">
+                        <div onclick="app.openPreview('${item.id}')" class="cursor-pointer p-5 space-y-2.5 flex-1 bg-gradient-to-b from-amber-500/5 to-transparent">
+                            <div class="flex items-center justify-between">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <i class="ph-fill ph-note-pencil"></i> Nota de Estudo
+                                </span>
+                                <span class="text-[11px] text-slate-400">${dateStr}</span>
+                            </div>
+                            <h5 class="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">${this.escapeHTML(item.name)}</h5>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-4 whitespace-pre-line leading-relaxed">${this.escapeHTML(item.content || '')}</p>
+                        </div>
+                        <div class="px-4 py-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                            <div>
+                                ${item.url ? `
+                                    <a href="${this.escapeHTML(item.url)}" target="_blank" rel="noopener noreferrer" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium">
+                                        <i class="ph-bold ph-link"></i> Abrir Link Externo
+                                    </a>
+                                ` : `<span class="text-[11px] text-slate-400">Resumo de texto</span>`}
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="app.openNoteModal('${item.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Editar Nota">
+                                    <i class="ph ph-pencil-simple text-base"></i>
+                                </button>
+                                <button onclick="app.confirmDeleteMaterial('${item.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition" title="Excluir Nota">
+                                    <i class="ph ph-trash text-base"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Outros Arquivos
+            return `
+                <div class="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between space-y-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 text-2xl">
+                            <i class="ph-fill ph-file-text"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h5 class="font-semibold text-sm truncate">${this.escapeHTML(item.name)}</h5>
+                            <p class="text-xs text-slate-400 mt-0.5">${sizeStr} • ${dateStr}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <button onclick="app.downloadMaterial('${item.id}')" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium flex items-center gap-1">
+                            <i class="ph ph-download-simple"></i> Baixar
+                        </button>
+                        <button onclick="app.confirmDeleteMaterial('${item.id}')" class="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10">
+                            <i class="ph ph-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        },
+
+        /**
+         * Abre o Visualizador Integrado (PDF, Imagem com Zoom ou Nota Completa)
+         */
+        openPreview(materialId) {
+            const item = this.materials.find(m => m.id === materialId);
+            if (!item) return;
+
+            if (this.activeBlobUrl) {
+                URL.revokeObjectURL(this.activeBlobUrl);
+                this.activeBlobUrl = null;
+            }
+
+            const modal = document.getElementById('previewModal');
+            const body = document.getElementById('previewBody');
+            const zoomControls = document.getElementById('imageZoomControls');
+            const downloadBtn = document.getElementById('previewDownloadBtn');
+            const newTabBtn = document.getElementById('previewOpenNewTabBtn');
+
+            document.getElementById('previewTitle').textContent = item.name;
+            document.getElementById('previewSubtitle').textContent = `${this.formatBytes(item.size || 0)} • Adicionado em ${new Date(item.createdAt).toLocaleDateString('pt-BR')}`;
+
+            this.currentZoom = 1;
+            document.getElementById('zoomLevelText').textContent = '100%';
+
+            if (item.type === 'image' && item.blob) {
+                this.activeBlobUrl = URL.createObjectURL(item.blob);
+                zoomControls.classList.replace('hidden', 'flex');
+                downloadBtn.classList.remove('hidden');
+                newTabBtn.classList.remove('hidden');
+                downloadBtn.href = this.activeBlobUrl;
+                downloadBtn.download = item.name;
+                newTabBtn.href = this.activeBlobUrl;
+
+                body.innerHTML = `
+                    <div class="overflow-auto max-w-full max-h-full flex items-center justify-center p-4">
+                        <img id="previewImageElement" src="${this.activeBlobUrl}" alt="${this.escapeHTML(item.name)}" class="max-h-[80vh] w-auto rounded-lg shadow-2xl transition-transform duration-150 ease-out" style="transform: scale(1)">
+                    </div>
+                `;
+            } else if (item.type === 'pdf' && item.blob) {
+                this.activeBlobUrl = URL.createObjectURL(item.blob);
+                zoomControls.classList.replace('flex', 'hidden');
+                downloadBtn.classList.remove('hidden');
+                newTabBtn.classList.remove('hidden');
+                downloadBtn.href = this.activeBlobUrl;
+                downloadBtn.download = item.name;
+                newTabBtn.href = this.activeBlobUrl;
+
+                body.innerHTML = `
+                    <div class="w-full h-full max-w-6xl mx-auto flex flex-col bg-slate-900 rounded-xl overflow-hidden border border-slate-700 shadow-2xl">
+                        <iframe src="${this.activeBlobUrl}" class="w-full flex-1 min-h-[78vh] bg-white" title="Leitor de PDF"></iframe>
+                    </div>
+                `;
+            } else if (item.type === 'note') {
+                zoomControls.classList.replace('flex', 'hidden');
+                downloadBtn.classList.add('hidden');
+                newTabBtn.classList.add('hidden');
+
+                body.innerHTML = `
+                    <div class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 max-w-2xl w-full rounded-2xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[82vh] overflow-y-auto">
+                        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-wider text-amber-500">Anotação de Estudo</span>
+                                <h3 class="text-xl font-bold mt-1">${this.escapeHTML(item.name)}</h3>
+                            </div>
+                            <button onclick="app.closePreviewModal(); app.openNoteModal('${item.id}')" class="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-semibold flex items-center gap-1.5">
+                                <i class="ph-bold ph-pencil-simple"></i> Editar
+                            </button>
+                        </div>
+                        ${item.url ? `
+                            <div class="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between">
+                                <span class="text-xs truncate text-indigo-400">${this.escapeHTML(item.url)}</span>
+                                <a href="${this.escapeHTML(item.url)}" target="_blank" class="text-xs font-bold text-indigo-400 hover:underline shrink-0 ml-3 flex items-center gap-1">
+                                    Acessar <i class="ph-bold ph-arrow-square-out"></i>
+                                </a>
+                            </div>
+                        ` : ''}
+                        <div class="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">${this.escapeHTML(item.content || '')}</div>
+                    </div>
+                `;
+            }
+
+            modal.classList.replace('hidden', 'flex');
+        },
+
+        closePreviewModal() {
+            const modal = document.getElementById('previewModal');
+            modal.classList.replace('flex', 'hidden');
+            document.getElementById('previewBody').innerHTML = '';
+            if (this.activeBlobUrl) {
+                URL.revokeObjectURL(this.activeBlobUrl);
+                this.activeBlobUrl = null;
+            }
+        },
+
+        adjustImageZoom(delta) {
+            this.currentZoom = Math.min(3, Math.max(0.5, this.currentZoom + delta));
+            const img = document.getElementById('previewImageElement');
+            if (img) {
+                img.style.transform = `scale(${this.currentZoom})`;
+                document.getElementById('zoomLevelText').textContent = `${Math.round(this.currentZoom * 100)}%`;
+            }
+        },
+
+        resetImageZoom() {
+            this.currentZoom = 1;
+            const img = document.getElementById('previewImageElement');
+            if (img) {
+                img.style.transform = 'scale(1)';
+                document.getElementById('zoomLevelText').textContent = '100%';
+            }
+        },
+
+        /**
+         * Download direto de um arquivo armazenado no IndexedDB
+         */
+        downloadMaterial(materialId) {
+            const item = this.materials.find(m => m.id === materialId);
+            if (!item || !item.blob) return;
+
+            const url = URL.createObjectURL(item.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = item.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        },
+
+        /**
+         * Gerenciamento de Categorias (Criar, Editar, Excluir)
+         */
+        renderPickers() {
+            const colorContainer = document.getElementById('colorPickerContainer');
+            colorContainer.innerHTML = this.colors.map(c => `
+                <button
+                    type="button"
+                    onclick="app.selectColor('${c.value}')"
+                    data-color="${c.value}"
+                    class="color-pick-btn w-8 h-8 rounded-full transition transform hover:scale-110 flex items-center justify-center text-white"
+                    style="background-color: ${c.value}"
+                >
+                    ${this.selectedColor === c.value ? '<i class="ph-bold ph-check text-sm"></i>' : ''}
+                </button>
+            `).join('');
+
+            const iconContainer = document.getElementById('iconPickerContainer');
+            iconContainer.innerHTML = this.icons.map(icon => `
+                <button
+                    type="button"
+                    onclick="app.selectIcon('${icon}')"
+                    class="icon-pick-btn p-2.5 rounded-xl border text-lg flex items-center justify-center transition ${
+                        this.selectedIcon === icon
+                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }"
+                >
+                    <i class="ph-fill ${icon}"></i>
+                </button>
+            `).join('');
+        },
+
+        selectColor(color) {
+            this.selectedColor = color;
+            this.renderPickers();
+        },
+
+        selectIcon(icon) {
+            this.selectedIcon = icon;
+            this.renderPickers();
+        },
+
+        openCategoryModal(editCatId = null) {
+            const modal = document.getElementById('categoryModal');
+            const titleEl = document.getElementById('categoryModalTitle');
+            const idInput = document.getElementById('catIdInput');
+            const nameInput = document.getElementById('catNameInput');
+            const descInput = document.getElementById('catDescInput');
+
+            if (editCatId) {
+                const cat = this.categories.find(c => c.id === editCatId);
+                if (!cat) return;
+                titleEl.textContent = 'Editar Tema de Estudo';
+                idInput.value = cat.id;
+                nameInput.value = cat.name;
+                descInput.value = cat.description || '';
+                this.selectedColor = cat.color;
+                this.selectedIcon = cat.icon;
+            } else {
+                titleEl.textContent = 'Novo Tema de Estudo';
+                idInput.value = '';
+                nameInput.value = '';
+                descInput.value = '';
+                this.selectedColor = this.colors[0].value;
+                this.selectedIcon = this.icons[0];
+            }
+
+            this.renderPickers();
+            modal.classList.replace('hidden', 'flex');
+            setTimeout(() => nameInput.focus(), 50);
+        },
+
+        closeCategoryModal() {
+            document.getElementById('categoryModal').classList.replace('flex', 'hidden');
+        },
+
+        async saveCategory(event) {
+            event.preventDefault();
+            const id = document.getElementById('catIdInput').value;
+            const name = document.getElementById('catNameInput').value.trim();
+            const description = document.getElementById('catDescInput').value.trim();
+
+            if (!name) return;
+
+            if (id) {
+                const index = this.categories.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    this.categories[index] = {
+                        ...this.categories[index],
+                        name,
+                        description,
+                        color: this.selectedColor,
+                        icon: this.selectedIcon
+                    };
+                    await this.dbPut('categories', this.categories[index]);
+                    this.showToast('Tema atualizado com sucesso!', 'success');
+                }
+            } else {
+                const newCat = {
+                    id: 'cat_' + Date.now(),
+                    name,
+                    description,
+                    color: this.selectedColor,
+                    icon: this.selectedIcon,
+                    createdAt: Date.now()
+                };
+                await this.dbPut('categories', newCat);
+                this.categories.unshift(newCat);
+                this.activeCategoryId = newCat.id;
+                this.showToast('Novo tema criado! Agora você pode enviar seus PDFs e imagens.', 'success');
+            }
+
+            this.closeCategoryModal();
+            this.renderAll();
+        },
+
+        editCurrentCategory() {
+            if (this.activeCategoryId) {
+                this.openCategoryModal(this.activeCategoryId);
+            }
+        },
+
+        confirmDeleteCurrentCategory() {
+            if (this.activeCategoryId) {
+                this.confirmDeleteCategory(this.activeCategoryId);
+            }
+        },
+
+        confirmDeleteCategory(catId) {
+            const cat = this.categories.find(c => c.id === catId);
+            if (!cat) return;
+            const count = this.materials.filter(m => m.categoryId === catId).length;
+
+            this.openConfirmModal(
+                `Excluir "${cat.name}"?`,
+                `Este tema e todos os seus ${count} material(is) (PDFs, imagens e notas) serão removidos permanentemente.`,
+                async () => {
+                    const toDelete = this.materials.filter(m => m.categoryId === catId);
+                    for (const m of toDelete) {
+                        await this.dbDelete('materials', m.id);
+                    }
+                    await this.dbDelete('categories', catId);
+
+                    this.materials = this.materials.filter(m => m.categoryId !== catId);
+                    this.categories = this.categories.filter(c => c.id !== catId);
+
+                    if (this.activeCategoryId === catId) {
+                        this.activeCategoryId = null;
+                    }
+
+                    this.updateStorageStats();
+                    this.renderAll();
+                    this.showToast('Tema excluído com sucesso.', 'info');
+                }
+            );
+        },
+
+        /**
+         * Gerenciamento de Notas / Resumos dentro do Tema
+         */
+        openNoteModal(editNoteId = null) {
+            const modal = document.getElementById('noteModal');
+            const idInput = document.getElementById('noteIdInput');
+            const titleInput = document.getElementById('noteTitleInput');
+            const urlInput = document.getElementById('noteUrlInput');
+            const contentInput = document.getElementById('noteContentInput');
+
+            if (editNoteId) {
+                const note = this.materials.find(m => m.id === editNoteId);
+                if (!note) return;
+                idInput.value = note.id;
+                titleInput.value = note.name;
+                urlInput.value = note.url || '';
+                contentInput.value = note.content || '';
+            } else {
+                idInput.value = '';
+                titleInput.value = '';
+                urlInput.value = '';
+                contentInput.value = '';
+            }
+
+            modal.classList.replace('hidden', 'flex');
+            setTimeout(() => titleInput.focus(), 50);
+        },
+
+        closeNoteModal() {
+            document.getElementById('noteModal').classList.replace('flex', 'hidden');
+        },
+
+        async saveNote(event) {
+            event.preventDefault();
+            const id = document.getElementById('noteIdInput').value;
+            const name = document.getElementById('noteTitleInput').value.trim();
+            const url = document.getElementById('noteUrlInput').value.trim();
+            const content = document.getElementById('noteContentInput').value.trim();
+
+            if (!name || !content) return;
+
+            if (id) {
+                const index = this.materials.findIndex(m => m.id === id);
+                if (index !== -1) {
+                    this.materials[index] = {
+                        ...this.materials[index],
+                        name,
+                        url,
+                        content,
+                        size: new Blob([content]).size
+                    };
+                    await this.dbPut('materials', this.materials[index]);
+                    this.showToast('Anotação atualizada!', 'success');
+                }
+            } else {
+                const newNote = {
+                    id: 'note_' + Date.now(),
+                    categoryId: this.activeCategoryId,
+                    name,
+                    type: 'note',
+                    url,
+                    content,
+                    size: new Blob([content]).size,
+                    createdAt: Date.now()
+                };
+                await this.dbPut('materials', newNote);
+                this.materials.push(newNote);
+                this.showToast('Anotação salva no tema!', 'success');
+            }
+
+            this.closeNoteModal();
+            this.updateStorageStats();
+            this.renderAll();
+        },
+
+        confirmDeleteMaterial(matId) {
+            const item = this.materials.find(m => m.id === matId);
+            if (!item) return;
+
+            this.openConfirmModal(
+                'Remover Material?',
+                `Deseja excluir "${item.name}" deste tema de estudo?`,
+                async () => {
+                    await this.dbDelete('materials', matId);
+                    this.materials = this.materials.filter(m => m.id !== matId);
+                    this.updateStorageStats();
+                    this.renderAll();
+                    this.showToast('Material removido.', 'info');
+                }
+            );
+        },
+
+        /**
+         * Modal de Confirmação Genérico
+         */
+        openConfirmModal(title, desc, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalDesc').textContent = desc;
+            const btn = document.getElementById('confirmModalActionBtn');
+
+            btn.onclick = async () => {
+                this.closeConfirmModal();
+                await onConfirm();
+            };
+
+            modal.classList.replace('hidden', 'flex');
+        },
+
+        closeConfirmModal() {
+            document.getElementById('confirmModal').classList.replace('flex', 'hidden');
+        },
+
+        /**
+         * Backup (Exportar / Importar JSON com conversão Base64 dos Blobs)
+         */
+        openBackupModal() {
+            document.getElementById('backupModal').classList.replace('hidden', 'flex');
+        },
+
+        blobToBase64(blob) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        },
+
+        base64ToBlob(dataUrl) {
+            const arr = dataUrl.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], { type: mime });
+        },
+
+        async exportDatabaseBackup() {
+            try {
+                this.showToast('Preparando arquivo de backup...', 'info');
+                const serializedMaterials = [];
+
+                for (const m of this.materials) {
+                    const copy = { ...m };
+                    if (m.blob) {
+                        copy.base64Data = await this.blobToBase64(m.blob);
+                        delete copy.blob;
+                    }
+                    serializedMaterials.push(copy);
+                }
+
+                const payload = {
+                    app: 'PDCStudio',
+                    exportedAt: new Date().toISOString(),
+                    categories: this.categories,
+                    materials: serializedMaterials
+                };
+
+                const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `PDC_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                this.showToast('Backup exportado com sucesso!', 'success');
+            } catch (err) {
+                console.error(err);
+                this.showToast('Erro ao exportar backup.', 'error');
+            }
+        },
+
+        async importDatabaseBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                if (!Array.isArray(data.categories) || !Array.isArray(data.materials)) {
+                    throw new Error('Formato inválido');
+                }
+
+                for (const c of data.categories) {
+                    await this.dbPut('categories', c);
+                }
+
+                for (const m of data.materials) {
+                    if (m.base64Data) {
+                        m.blob = this.base64ToBlob(m.base64Data);
+                        delete m.base64Data;
+                    }
+                    await this.dbPut('materials', m);
+                }
+
+                await this.loadAllData();
+                this.renderAll();
+                document.getElementById('backupModal').classList.replace('flex', 'hidden');
+                this.showToast('Backup restaurado com sucesso!', 'success');
+            } catch (err) {
+                console.error(err);
+                this.showToast('Arquivo de backup inválido.', 'error');
+            } finally {
+                event.target.value = '';
+            }
+        },
+
+        /**
+         * Utilitários (Tema Claro/Escuro, Sidebar Mobile, Formatação de Bytes e Toasts)
+         */
+        initTheme() {
+            const saved = localStorage.getItem('pdc_theme') || 'dark';
+            document.documentElement.classList.toggle('dark', saved === 'dark');
+            this.updateThemeIcon();
+        },
+
+        toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('pdc_theme', isDark ? 'dark' : 'light');
+            this.updateThemeIcon();
+        },
+
+        updateThemeIcon() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const icon = document.getElementById('themeIcon');
+            icon.className = isDark ? 'ph ph-sun text-lg text-amber-400' : 'ph ph-moon text-lg text-slate-700';
+        },
+
+        toggleMobileSidebar(show) {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (show) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        },
+
+        updateStorageStats() {
+            const totalBytes = this.materials.reduce((acc, item) => acc + (item.size || 0), 0);
+            document.getElementById('storageUsageBadge').textContent = this.formatBytes(totalBytes);
+        },
+
+        formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 KB';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        },
+
+        escapeHTML(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        },
+
+        showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            const colors = {
+                success: 'bg-emerald-600 text-white',
+                error: 'bg-rose-600 text-white',
+                info: 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900'
+            };
+            const icons = {
+                success: 'ph-check-circle',
+                error: 'ph-warning-circle',
+                info: 'ph-info'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-xs sm:text-sm font-medium animate-fade-in ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i class="ph-fill ${icons[type] || icons.info} text-lg shrink-0"></i>
+                <span>${this.escapeHTML(message)}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.2s ease';
+                setTimeout(() => toast.remove(), 200);
+            }, 3200);
+        }
+    };
+
+    window.onload = () => app.init();
+</script>
+</body>
+</html>
